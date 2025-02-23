@@ -1,0 +1,9 @@
+agno
+requests
+python-dotenv
+pandas
+psycopg2-binary
+pgvector
+beautifulsoup4
+numpy
+logging
