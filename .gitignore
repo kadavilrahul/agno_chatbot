@@ -50,7 +50,7 @@ coverage.xml
 .env
 .venv
 env/
-venv/
+chat_venv/
 pyvenv.cfg
 
 # Jupyter Notebook
