@@ -1,18 +1,13 @@
-from agno.agent import Agent
-from agno.models.google.gemini import Gemini
 import os
 from dotenv import load_dotenv
 import requests
-from requests.auth import HTTPBasicAuth
+from bs4 import BeautifulSoup
 import pandas as pd
 import psycopg2
 from psycopg2.extras import execute_values
-import numpy as np
-from bs4 import BeautifulSoup
 from pgvector.psycopg2 import register_vector
-import re
-from typing import List, Tuple, Optional
 import logging
+import openai
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -21,7 +16,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # Environment variables
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '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')
 DB_NAME = os.getenv('DB_NAME', 'faq_db')
 DB_USER = os.getenv('DB_USER', 'postgres')
 DB_PASSWORD = os.getenv('DB_PASSWORD', 'postgres')
@@ -36,25 +31,12 @@ WC_SECRET = os.getenv('WC_SECRET')
 class FAQDatabase:
     def __init__(self):
         self.conn = None
-        # Initialize the Gemini model properly with embedding capability
-        self.model = Gemini(
-            id="gemini-2.0-flash-exp",
-            api_key=GEMINI_API_KEY,
-            generative_model_kwargs={},
-            generation_config={}
-        )
-        # Initialize the embedding client separately
-        try:
-            import google.generativeai as genai
-            genai.configure(api_key=GEMINI_API_KEY)
-            self.embedding_model = genai.GenerativeModel("embedding-001")
-            logger.info("Successfully initialized embedding model")
-        except Exception as e:
-            logger.error(f"Error initializing embedding model: {e}")
-            self.embedding_model = None
+        openai.api_key = OPENROUTER_API_KEY
+        openai.api_base = "https://openrouter.ai/api/v1"
 
     def connect(self):
         """Establish database connection"""
+        print("Attempting database connection...")
         try:
             self.conn = psycopg2.connect(
                 dbname=DB_NAME,
@@ -65,6 +47,7 @@ class FAQDatabase:
             )
             register_vector(self.conn)
             logger.info("Successfully connected to database")
+            print("Database connection successful!")
         except Exception as e:
             logger.error(f"Database connection error: {e}")
             raise
@@ -79,7 +62,7 @@ class FAQDatabase:
                     id SERIAL PRIMARY KEY,
                     question TEXT NOT NULL,
                     answer TEXT NOT NULL,
-                    embedding vector(768),
+                    embedding vector(1536),
                     source TEXT NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -91,45 +74,34 @@ class FAQDatabase:
                     id SERIAL PRIMARY KEY,
                     url TEXT NOT NULL,
                     content TEXT NOT NULL,
-                    embedding vector(768),
+                    embedding vector(1536),
                     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
                 """)
-                
-                self.conn.commit()
-                logger.info("Database tables initialized successfully")
-        except Exception as e:
-            logger.error(f"Database initialization error: {e}")
-            self.conn.rollback()
-            raise
+                try:
+                    self.conn.commit()
+                    logger.info("Database tables initialized successfully")
+                except Exception as e:
+                    logger.error(f"Database initialization error: {e}")
+                    self.conn.rollback()
+                    raise
 
-    def generate_embedding(self, text: str) -> List[float]:
-        """Generate embedding for text using Google's embedding model"""
+    def generate_embedding(self, text: str):
+        """Generate embedding for text using OpenAI's embedding model via OpenRouter"""
         try:
-            if self.embedding_model is None:
-                # Fallback to a simple mock embedding if the model isn't available
-                logger.warning("Using fallback mock embedding as embedding model is not available")
-                # Create a deterministic but unique embedding based on the text
-                import hashlib
-                hash_obj = hashlib.md5(text.encode())
-                hash_bytes = hash_obj.digest()
-                # Create a 768-dimensional vector from the hash
-                mock_embedding = []
-                for i in range(768):
-                    # Use modulo to get values between -1 and 1
-                    val = ((hash_bytes[i % 16] / 128.0) - 1.0) * 0.1
-                    mock_embedding.append(val)
-                return mock_embedding
-            
-            # Use the embedding model to generate embeddings
-            result = self.embedding_model.embed_content(text=text)
-            return result.embedding
+            response = openai.embeddings.create(
+                model="mistralai/Mistral-Embed",  # Choose a free model
+                input=text,
+                headers={
+                    "HTTP-Referer": "https://agno_chatbot.com",  # Optional, but recommended
+                    "X-Title": "Agno Chatbot"  # Optional, but recommended
+                }
+            )
+            return response.data[0].embedding
         except Exception as e:
             logger.error(f"Error generating embedding: {e}")
-            # Return a zero vector as fallback
-            return [0.0] * 768
+            return [0.0] * 1536
 
-    # Rest of the class methods remain the same
     def load_csv_data(self, csv_path: str):
         """Load FAQ data from CSV file"""
         try:
@@ -193,37 +165,28 @@ class FAQDatabase:
             self.conn.rollback()
             raise
 
-    def find_similar_questions(self, query: str, limit: int = 3) -> List[Tuple[str, str, float]]:
+    def find_similar_questions(self, query: str, limit: int = 3):
         """Find similar questions using vector similarity"""
         try:
             query_embedding = self.generate_embedding(query)
             
             with self.conn.cursor() as cur:
-                # Search in FAQs table
                 cur.execute("""
                 SELECT question, answer, 1 - (embedding <=> %s) as similarity
                 FROM faqs
-                WHERE 1 - (embedding <=> %s) > 0.7
                 ORDER BY similarity DESC
                 LIMIT %s
-                """, (query_embedding, query_embedding, limit))
+                """, (query_embedding, limit))
                 
                 results = cur.fetchall()
-                
-                # Search in website content
-                cur.execute("""
-                SELECT content, url, 1 - (embedding <=> %s) as similarity
-                FROM website_content
-                WHERE 1 - (embedding <=> %s) > 0.7
-                ORDER BY similarity DESC
-                LIMIT %s
-                """, (query_embedding, query_embedding, limit))
-                
-                website_results = cur.fetchall()
-                
-                return results + website_results
+                return results
         except Exception as e:
             logger.error(f"Error finding similar questions: {e}")
             return []
 
-# The rest of the file remains unchanged
+if __name__ == "__main__":
+    db = FAQDatabase()
+    db.connect()
+    db.initialize_database()
+    db.load_csv_data('faq.csv')
+    db.scrape_website_content()
