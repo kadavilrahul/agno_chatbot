@@ -7,11 +7,11 @@ This project contains several FAQ bots.
 1.  Create a Python environment:
 
     ```bash
-    python3 -m venv venv
-    source venv/bin/activate
+    python3 -m venv chatbot_venv
+    source chatbot_venv/bin/activate
     ```
 
-2.  Install the dependencies:
+2.  Install the dependencies from requirements.txt:
 
     ```bash
     pip install -r requirements.txt
