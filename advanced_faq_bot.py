@@ -29,9 +29,9 @@ DB_HOST = os.getenv('DB_HOST', 'localhost')
 DB_PORT = os.getenv('DB_PORT', '5432')
 
 # WooCommerce credentials
-WC_URL = "https://wholesale.silkroademart.com"
-WC_KEY = "ck_7f762d0bb0a2243c237d76fc21c1c4210b3c9453"
-WC_SECRET = "cs_70dda921540d202bcdd980ddbeb8c7adb3f8d518"
+WC_URL = os.getenv('WC_URL')
+WC_KEY = os.getenv('WC_KEY')
+WC_SECRET = os.getenv('WC_SECRET')
 
 class FAQDatabase:
     def __init__(self):
