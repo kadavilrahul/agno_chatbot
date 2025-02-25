@@ -14,9 +14,9 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 if not GEMINI_API_KEY:
     raise ValueError("Missing required environment variables")
 
-wc_url = "https://wholesale.silkroademart.com"
-wc_key = "ck_7f762d0bb0a2243c237d76fc21c1c4210b3c9453"
-wc_secret = "cs_70dda921540d202bcdd980ddbeb8c7adb3f8d518"
+wc_url = os.getenv('WC_URL')
+wc_key = os.getenv('WC_KEY')
+wc_secret = os.getenv('WC_SECRET')
 
 def woocommerce_tool(order_id: str) -> str:
     """Tool to interact with the WooCommerce API"""
