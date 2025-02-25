@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # Environment variables
-OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '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')
+OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', 'API')
 DB_NAME = os.getenv('DB_NAME', 'faq_db')
 DB_USER = os.getenv('DB_USER', 'postgres')
 DB_PASSWORD = os.getenv('DB_PASSWORD', 'postgres')
