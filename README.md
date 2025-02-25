@@ -11,7 +11,15 @@ This project contains several FAQ bots.
     source chatbot_venv/bin/activate
     ```
 
-2.  Install the dependencies from requirements.txt:
+2.  Create a `faq.csv` file with the following format (tab-separated):
+
+    ```csv
+    question	answer
+    What is your return policy?	Our return policy is 30 days.
+    What is your shipping policy?	We ship within 2 business days.
+    ```
+
+3.  Install the dependencies from requirements.txt:
 
     ```bash
     pip install -r requirements.txt
