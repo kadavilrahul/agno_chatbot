@@ -9,3 +9,4 @@ numpy
 logging
 google-genai
 mysql-connector-python
+google-generativeai
