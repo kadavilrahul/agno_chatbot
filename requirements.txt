@@ -8,3 +8,4 @@ beautifulsoup4
 numpy
 logging
 google-genai
+mysql-connector-python
