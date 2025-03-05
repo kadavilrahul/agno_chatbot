@@ -106,7 +106,7 @@ def get_order_status(email: str = None, order_id: str = None) -> str:
                 result.append(f"Order #{row['order_id']}")
                 result.append(f"Date: {order_date}")
                 result.append(f"Customer: {row.get('first_name', '')} {row.get('last_name', '')}")
-                result.append(f"Total: ${row.get('total', 'N/A')}")
+                result.append(f"Total: Rs.{row.get('total', 'N/A')}")
                 result.append(f"Status: {status}")
                 result.append("---")
             
