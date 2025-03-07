@@ -42,6 +42,5 @@ This project contains several FAQ bots.
 4.  Run the bots:
 
     ```bash
-    python advanced_faq_bot.py
-    python ecommerce_faq_bot.py
-    python product_search_bot.py
+    python woocommerce_bot.py
+    ```

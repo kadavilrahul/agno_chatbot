@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 import csv
 import mysql.connector
 import gradio as gr
-import re
 
 load_dotenv()
 
@@ -199,7 +198,7 @@ faq_agent = Agent(
     Use the following FAQ data to answer questions: {faq_data}
     If you don't find a direct answer in the FAQ data, provide a helpful response based on general e-commerce knowledge.
     Always be polite and professional.""",
-    show_tool_calls=False,  # Hide tool calls
+    show_tool_calls=True,
     markdown=True,
 )
 
@@ -218,7 +217,7 @@ order_status_agent = Agent(
     Use the get_order_status tool to retrieve order status information.
     Always ask for either an email address or order ID if the user doesn't provide one.
     Explain what each order status means in customer-friendly language.""",
-    show_tool_calls=False,  # Hide tool calls
+    show_tool_calls=True,
     markdown=True,
 )
 
@@ -237,7 +236,7 @@ product_search_agent = Agent(
     Use the search_products tool to find products based on the user's query.
     If the user asks about products or mentions looking for something, help them find it.
     Always ask for clarification if the product name is ambiguous.""",
-    show_tool_calls=False,  # Hide tool calls
+    show_tool_calls=True,
     markdown=True,
 )
 
@@ -263,26 +262,9 @@ agent_team = Agent(
     
     Start conversations by introducing yourself as the store's virtual assistant and briefly mentioning what you can help with.
     """,
-    show_tool_calls=False,  # Hide tool calls
+    show_tool_calls=True,
     markdown=True,
 )
-
-# Function to clean agent status messages from the response
-def clean_agent_status(text):
-    # Remove lines that contain agent status messages
-    if not text:
-        return text
-        
-    # Remove "Running: transfer_task_to..." messages
-    text = re.sub(r'Running: transfer_task_to_\w+\(.*?\)', '', text)
-    
-    # Remove other potential agent status messages
-    text = re.sub(r'Running: \w+\(.*?\)', '', text)
-    
-    # Remove empty lines that might be left after removing status messages
-    text = re.sub(r'\n\s*\n', '\n', text)
-    
-    return text.strip()
 
 # Function to process user queries for Gradio
 def process_query(message, history):
@@ -297,9 +279,6 @@ def process_query(message, history):
         else:
             # If it's already a string, use it directly
             response_text = str(response)
-        
-        # Clean any agent status messages from the response
-        response_text = clean_agent_status(response_text)
             
         # Return the user message and bot response as a tuple
         return response_text

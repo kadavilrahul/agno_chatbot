@@ -4,8 +4,6 @@ import os
 from dotenv import load_dotenv
 import csv
 import mysql.connector
-import gradio as gr
-import re
 
 load_dotenv()
 
@@ -199,7 +197,7 @@ faq_agent = Agent(
     Use the following FAQ data to answer questions: {faq_data}
     If you don't find a direct answer in the FAQ data, provide a helpful response based on general e-commerce knowledge.
     Always be polite and professional.""",
-    show_tool_calls=False,  # Hide tool calls
+    show_tool_calls=True,
     markdown=True,
 )
 
@@ -218,7 +216,7 @@ order_status_agent = Agent(
     Use the get_order_status tool to retrieve order status information.
     Always ask for either an email address or order ID if the user doesn't provide one.
     Explain what each order status means in customer-friendly language.""",
-    show_tool_calls=False,  # Hide tool calls
+    show_tool_calls=True,
     markdown=True,
 )
 
@@ -237,7 +235,7 @@ product_search_agent = Agent(
     Use the search_products tool to find products based on the user's query.
     If the user asks about products or mentions looking for something, help them find it.
     Always ask for clarification if the product name is ambiguous.""",
-    show_tool_calls=False,  # Hide tool calls
+    show_tool_calls=True,
     markdown=True,
 )
 
@@ -263,154 +261,48 @@ agent_team = Agent(
     
     Start conversations by introducing yourself as the store's virtual assistant and briefly mentioning what you can help with.
     """,
-    show_tool_calls=False,  # Hide tool calls
+    show_tool_calls=True,
     markdown=True,
 )
 
-# Function to clean agent status messages from the response
-def clean_agent_status(text):
-    # Remove lines that contain agent status messages
-    if not text:
-        return text
-        
-    # Remove "Running: transfer_task_to..." messages
-    text = re.sub(r'Running: transfer_task_to_\w+\(.*?\)', '', text)
-    
-    # Remove other potential agent status messages
-    text = re.sub(r'Running: \w+\(.*?\)', '', text)
-    
-    # Remove empty lines that might be left after removing status messages
-    text = re.sub(r'\n\s*\n', '\n', text)
-    
-    return text.strip()
-
-# Function to process user queries for Gradio
-def process_query(message, history):
-    try:
-        # Get the response from the agent
-        response = agent_team.run(message)
-        
-        # Extract just the content from the RunResponse object
-        if hasattr(response, 'content'):
-            # If it's a RunResponse object, get just the content
-            response_text = response.content
-        else:
-            # If it's already a string, use it directly
-            response_text = str(response)
-        
-        # Clean any agent status messages from the response
-        response_text = clean_agent_status(response_text)
-            
-        # Return the user message and bot response as a tuple
-        return response_text
-    except Exception as e:
-        return f"An error occurred: {e}\nPlease try again with a different query."
-
-# Create Gradio interface
-def create_gradio_interface():
-    # Custom CSS for better appearance
-    custom_css = """
-    .gradio-container {
-        font-family: 'Arial', sans-serif;
-    }
-    .chat-message {
-        padding: 10px;
-        border-radius: 10px;
-        margin-bottom: 10px;
-    }
-    .user-message {
-        background-color: #e6f7ff;
-    }
-    .bot-message {
-        background-color: #f0f0f0;
-    }
-    """
-    
-    # Create the Gradio interface
-    with gr.Blocks(css=custom_css) as demo:
-        gr.Markdown("# WooCommerce Store Assistant")
-        gr.Markdown("""
-        Welcome to our WooCommerce Store Assistant! I can help you with:
-        - Answering frequently asked questions about our store
-        - Checking the status of your orders (provide your email or order ID)
-        - Finding products in our catalog
-        """)
-        
-        chatbot = gr.Chatbot(
-            label="Chat",
-            height=500,
-            show_copy_button=True
-        )
-        
-        with gr.Row():
-            msg = gr.Textbox(
-                label="Type your message here",
-                placeholder="Ask me anything about our store, products, or your orders...",
-                scale=9
-            )
-            submit = gr.Button("Send", scale=1)
-        
-        with gr.Row():
-            clear = gr.Button("Clear Conversation")
-        
-        # Example queries to help users get started
-        gr.Examples(
-            examples=[
-                "What's your return policy?",
-                "I want to check my order status. My email is customer@example.com",
-                "Do you have any t-shirts available?",
-                "How long does shipping take?",
-                "What payment methods do you accept?"
-            ],
-            inputs=msg
-        )
-        
-        # Set up event handlers
-        def user_input(user_message, history):
-            # Add user message to history
-            return "", history + [[user_message, None]]
-        
-        def bot_response(history):
-            # Process the last user message
-            if history and history[-1][1] is None:
-                user_message = history[-1][0]
-                bot_message = process_query(user_message, history[:-1])
-                history[-1][1] = bot_message
-            return history
-        
-        submit.click(
-            user_input, 
-            inputs=[msg, chatbot], 
-            outputs=[msg, chatbot],
-            queue=False
-        ).then(
-            bot_response,
-            inputs=[chatbot],
-            outputs=[chatbot]
-        )
-        
-        msg.submit(
-            user_input, 
-            inputs=[msg, chatbot], 
-            outputs=[msg, chatbot],
-            queue=False
-        ).then(
-            bot_response,
-            inputs=[chatbot],
-            outputs=[chatbot]
-        )
-        
-        clear.click(lambda: None, None, chatbot, queue=False)
-        
-        # Add a welcome message when the interface loads
-        demo.load(lambda: [[None, "Hi there! I'm your WooCommerce store assistant. How can I help you today?"]], None, chatbot)
-    
-    return demo
-
 def main():
-    # Create and launch the Gradio interface
-    demo = create_gradio_interface()
-    demo.launch(share=True)  # Set share=False in production
+    """Main function to run the bot"""
+    print("WooCommerce Assistant Bot Started")
+    print("Type 'exit' to quit")
+    print("-" * 50)
+    
+    # Welcome message
+    print("Welcome to our WooCommerce Assistant!")
+    print("I can help with FAQs, order status inquiries, and product searches.")
+    print("What can I help you with today?")
+    
+    while True:
+        try:
+            user_query = input("\nYou: ")
+            if user_query.lower() in ['exit', 'quit', 'bye']:
+                print("Thank you for using our WooCommerce Assistant. Goodbye!")
+                break
+
+            print("\nProcessing your request...")
+            # Get the response from the agent
+            response = agent_team.run(user_query)
+            
+            # Extract just the content from the RunResponse object
+            if hasattr(response, 'content'):
+                # If it's a RunResponse object, get just the content
+                response_text = response.content
+            else:
+                # If it's already a string, use it directly
+                response_text = str(response)
+                
+            print(f"\nAssistant: {response_text}")
+            
+        except KeyboardInterrupt:
+            print("\nExiting the program...")
+            break
+        except Exception as e:
+            print(f"\nAn error occurred: {e}")
+            print("Please try again or type 'exit' to quit.")
 
 if __name__ == "__main__":
     main()
