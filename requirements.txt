@@ -11,3 +11,4 @@ google-genai
 mysql-connector-python
 google-generativeai
 gradio>=4.0.0
+openai
